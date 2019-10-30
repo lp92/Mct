@@ -1,0 +1,371 @@
+<template>
+	<view class="tabs">
+		<list  class="scroll-v list" enableBackToTop="true" scroll-y loadmoreoffset="15" @loadmore="loadMore()">
+			<refresh class="refresh" @refresh="onrefresh()" @pullingdown="onpullingdown" :display="refreshingx ? 'show' : 'hide'">
+				<div class="refresh-view">
+					<image class="refresh-icon" :src="refreshIcon" :style="{width: (refreshingx || pulling) ? 0: '30px'}" :class="{'refresh-icon-active': refreshFlagx}"></image>
+					<loading-indicator class="loading-icon" animating="true" v-if="refreshingx"></loading-indicator>
+					<text class="loading-text">{{refreshTextx}}</text>
+				</div>
+			</refresh>
+			<cell v-for="(newsitem,index2) in xlist" :key="newsitem.id">
+				<view class="demo-block">
+					<vun-cell-group :title="newsitem.ttime">
+						<view v-for="(secondItem,key) in newsitem.subList" :key="key">
+							<vun-cell :title="secondItem.ttype" icon="" :value="secondItem.tjine" :label="secondItem.tyjl" clickable="true"
+							 @click="jp" />
+						</view>
+					</vun-cell-group>
+				</view>
+			</cell>
+			<cell class="loading-more" v-if="isLoadingx || xlist.length >3">
+			<vun-loading url="https://gtms02.alicdn.com/tfs/TB1y4QbSXXXXXbgapXXXXXXXXXX-50-50.gif" />
+				<text class="loading-more-text">{{loadingTextx}}</text>
+			</cell>
+		</list>
+	</view>
+</template>
+<script>
+	import VunCellGroup from '@/components/vun-cell-group/index.nvue'
+	import VunLoading from '@/components/vun-loading' 
+	import VunCell from '@/components/vun-cell/index.nvue'
+	import request from '@/common/j-request/request.js'
+	export default {
+		components: {
+			VunCellGroup,
+			VunCell,
+			VunLoading
+		},
+		data() {
+			return {
+				xlist: [],
+				navigateFlag: false, //是否点击了转跳
+				pulling: false, //下拉
+				refreshIcon: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAMAAABg3Am1AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAB5QTFRFcHBw3Nzct7e39vb2ycnJioqK7e3tpqam29vb////D8oK7wAAAAp0Uk5T////////////ALLMLM8AAABxSURBVHja7JVBDoAgDASrjqj//7CJBi90iyYeOHTPMwmFZrHjYyyFYYUy1bwUZqtJIYVxhf1a6u0R7iUvWsCcrEtwJHp8MwMdvh2amHduiZD3rpWId9+BgPd7Cc2LIkPyqvlQvKxKBJ//Qwq/CacAAwDUv0a0YuKhzgAAAABJRU5ErkJggg==",
+				refreshFlagx: true,
+				refreshingx: true,
+				refreshTextx: "",
+				loadingTextx: '加载更多...',
+				isLoadingx: true,
+				xpage:1,
+				//
+				isIos: true,
+				isOk: 0, //0未获得，1获得，2拒绝
+				showload: false,
+				//
+				istap:true//可以点击
+			}
+		},
+		onNavigationBarButtonTap(e) {
+			console.log("---tap:"+this.istap)
+			if(this.istap){
+				this.istap=false;
+				uni.navigateTo({
+					url: '../add/add',
+					success: res => {},
+					fail: () => {},
+					complete: () => {
+						console.log("---tap2:"+this.istap)
+						this.istap=true;
+					}
+				});
+			}
+			
+		},
+		onLoad() {
+			this.isIos = (plus.os.name == "iOS")
+			this.requestAndroidPermission('android.permission.INTERNET');
+			if (this.isOk == 0) {
+				this.httpx()
+			} else {
+				uni.showModal({
+					title: '提示',
+					content: '没有网络权限，请打开网络设置！',
+					showCancel: false,
+					cancelText: '取消',
+					confirmText: '确定',
+					success: res => {
+						if (res.confirm) {
+							this.gotoAppPermissionSetting();
+						}
+					},
+					fail: () => {},
+					complete: () => {}
+				});
+			}
+		},
+		methods: {
+			// 权限start
+			judgeIosPermission: function(permisionID) {
+				var result = permision.judgeIosPermission(permisionID)
+				console.log(result);
+				var strStatus = (result) ? "已" : "未"
+				uni.showModal({
+					content: permisionID + '权限' + strStatus + "获得授权",
+					showCancel: false
+				});
+			},
+			async requestAndroidPermission(permisionID) {
+				var result = await permision.requestAndroidPermission(permisionID)
+				this.isOk = result
+				var strStatus
+				if (result == 1) {
+					strStatus = "已获得授权"
+				} else if (result == 0) {
+					strStatus = "未获得授权"
+				} else {
+					strStatus = "被永久拒绝权限"
+				}
+			},
+			//跳到权限设置页面
+			gotoAppPermissionSetting: function() {
+				permision.gotoAppPermissionSetting()
+			},
+			//权限end
+			//网络请求start
+			async httpx() { //成功请求（Promise)
+				request.setConfig({
+					baseUrl: 'http://rap2api.taobao.org/app/mock/234567/w/',
+					debug: false,
+					contentType: 'json',
+					encoding: 'utf-8',
+					skipInterceptorResponse: true, //是否跳过过滤器
+					business: null //接口响应的业务数据对象字段名，默认为data，如果返回整个业务对象，则需要设置为undefined
+				});
+				var that = this;
+				var res = await request
+					.get({
+						url: 'getlist',
+						 data: {
+						        page: that.xpage
+						    }
+					})
+					.then(
+						res => {							
+							if (res.code == 1) {
+								uni.showToast({
+									title: res.msg,
+									icon: 'none'
+								});
+							} else {
+								if(that.xpage==1){
+									this.xlist=[];
+								}
+								let list = res.data;
+								if (Object.keys(list).length != 0) {
+									// for (let i = 1; i <= Object.keys(list).length; i++) {
+									// 	let item = Object.assign({}, newsData);
+									// 	item.id = this.newGuid();
+									// 	list.push(item);
+									// }
+									that.xlist = that.xlist.concat(list);
+									console.log("-2:--"+Object.keys(that.xlist).length)
+								}
+							}
+							that.xpage+=1;
+							console.log("---page:"+that.xpage)
+							that.enrefresh();
+						},
+						res => {
+							console.log('failure：' + JSON.stringify(res));
+							that.enrefresh();
+						}
+					);
+			},
+
+			//网络请求end
+			goDetail(e) {
+				if (this.navigateFlag) {
+					return;
+				}
+				this.navigateFlag = true;
+				uni.navigateTo({
+					url: './detail?title=' + e.title
+				});
+				setTimeout(() => {
+					this.navigateFlag = false;
+				}, 200)
+			},
+			loadMore() {
+				setTimeout(() => {
+					this.httpx()
+				}, 2000)
+				
+			},
+			refreshData() {},
+			onrefresh() {
+				if (!this.refreshFlagx) {
+					return;
+				}
+				this.refreshingx = true;
+				this.refreshTextx = "正在刷新...";
+				this.xpage=1;
+					this.httpx();
+					
+			},
+			enrefresh(){
+				this.refreshData();
+				this.pulling = true;
+				this.refreshingx = false;
+				this.refreshFlagx = false;
+				this.refreshTextx = "已刷新";
+				setTimeout(() => { // TODO fix ios和Android 动画时间相反问题
+					this.pulling = false;
+				}, 500);
+			},
+			onpullingdown(e) {
+				if (this.refreshingx || this.pulling) {
+					return;
+				}
+				if (Math.abs(e.pullingDistance) > Math.abs(e.viewHeight)) {
+					this.refreshFlagx = true;
+					this.refreshTextx = "释放立即刷新";
+				} else {
+					this.refreshFlagx = false;
+					this.refreshTextx = "下拉可以刷新";
+				}
+			},
+			newGuid() {
+				let s4 = function() {
+					return (65536 * (1 + Math.random()) | 0).toString(16).substring(1);
+				}
+				return (s4() + s4() + "-" + s4() + "-4" + s4().substr(0, 3) + "-" + s4() + "-" + s4() + s4() + s4()).toUpperCase();
+			}
+		}
+	}
+</script>
+
+<style scoped lang="scss">
+	.demo-block {
+		padding: 0;
+
+		&__title {
+			padding: 35upx 32upx;
+			color: rgba(69, 90, 100, 0.6);
+			font-size: 28upx;
+		}
+	}
+
+	/*list */
+	.tabs {
+		flex: 1;
+		flex-direction: column;
+		overflow: hidden;
+		background-color: #ffffff;
+	}
+
+	.scroll-h {
+		width: 750upx;
+		height: 80upx;
+		flex-direction: row;
+	}
+
+	.line-h {
+		height: 1upx;
+		background-color: #cccccc;
+	}
+
+	.uni-tab-item {
+		flex-wrap: nowrap;
+		padding-left: 34upx;
+		padding-right: 34upx;
+	}
+
+	.uni-tab-item-title {
+		color: #555;
+		font-size: 30upx;
+		height: 80upx;
+		line-height: 80upx;
+		flex-wrap: nowrap;
+	}
+
+	.uni-tab-item-title-active {
+		color: #007AFF;
+	}
+
+	.swiper-box {
+		flex: 1;
+	}
+
+	.swiper-item {
+		flex: 1;
+		flex-direction: row;
+	}
+
+	.scroll-v {
+		flex: 1;
+		flex-direction: column;
+		width: 750upx;
+	}
+
+	.update-tips {
+		position: absolute;
+		left: 0;
+		top: 41px;
+		right: 0;
+		padding-top: 5px;
+		padding-bottom: 5px;
+		background-color: #FDDD9B;
+		align-items: center;
+		justify-content: center;
+		text-align: center;
+	}
+
+	.update-tips-text {
+		font-size: 14px;
+		color: #ffffff;
+	}
+
+	.refresh {
+		width: 750upx;
+		height: 64px;
+		justify-content: center;
+	}
+
+	.refresh-view {
+		flex-direction: row;
+		flex-wrap: nowrap;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.refresh-icon {
+		width: 30px;
+		height: 30px;
+		transition-duration: .5s;
+		transition-property: transform;
+		transform: rotate(0deg);
+		transform-origin: 15px 15px;
+	}
+
+	.refresh-icon-active {
+		transform: rotate(180deg);
+	}
+
+	.loading-icon {
+		width: 20px;
+		height: 20px;
+		margin-right: 5px;
+		color: #999999;
+	}
+
+	.loading-text {
+		margin-left: 2px;
+		font-size: 16px;
+		color: #999999;
+	}
+
+	.loading-more {
+		flex-direction:row;
+		align-items: center;
+		justify-content: center;
+		padding-top: 10px;
+		padding-bottom: 10px;
+		text-align: center;
+	}
+
+	.loading-more-text {
+		font-size: 28upx;
+		color: #999;
+	}
+</style>
