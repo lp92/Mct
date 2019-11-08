@@ -26,9 +26,9 @@
 	</view>
 </template>
 <script>
-	import VunCellGroup from '@/components/vun-cell-group/index.nvue'
+	import VunCellGroup from '@/components/vun-cell/vun-cell-group.nvue'
 	import VunLoading from '@/components/vun-loading' 
-	import VunCell from '@/components/vun-cell/index.nvue'
+	import VunCell from '@/components/vun-cell/vun-cell.nvue'
 	import request from '@/common/j-request/request.js'
 	export default {
 		components: {
@@ -139,7 +139,7 @@
 						 data: {
 						        page: that.xpage
 						    }
-					})
+					})					
 					.then(
 						res => {							
 							if (res.code == 1) {
@@ -172,7 +172,6 @@
 						}
 					);
 			},
-
 			//网络请求end
 			goDetail(e) {
 				if (this.navigateFlag) {

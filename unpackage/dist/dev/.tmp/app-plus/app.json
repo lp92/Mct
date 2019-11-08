@@ -1,6 +1,6 @@
 {
   "pages": [
-    "pages/add/add"
+    "pages/swiperx/swiperx"
   ],
   "window": {
     "navigationBarTextStyle": "black",
@@ -27,8 +27,7 @@
         },
         "nvue": true
       }
-    },
-    "entryPagePath": "pages/index/index"
+    }
   },
   "nvueCompiler": "uni-app",
   "renderer": "auto",

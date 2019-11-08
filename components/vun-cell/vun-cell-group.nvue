@@ -1,0 +1,33 @@
+<template>
+	<block>
+		<view style="flex-direction: row;padding: 20upx 30upx;background-color: #EBEBEB;">
+			<view style="flex:1;">
+				<text class="vun-cell-group__title" style="text-align: left;">{{title}}</text>
+			</view>
+			<view style="flex-direction: column;width: 150upx;">
+				<text class="vun-cell-group__title">bbbbbb</text>
+				<text class="vun-cell-group__title2">ccccc</text>			
+			</view>
+		</view>
+		<view class="vun-cell-group" :class="border ? 'vun-hairline--top-bottom' : ''">
+			<slot />
+		</view>
+	</block>
+</template>
+
+<script>
+	export default {
+		props: {
+			title: String,
+			border: {
+				type: Boolean,
+				default: true
+			}
+
+		}
+	};
+</script>
+
+<style scoped lang="scss">
+	@import './index.scss';
+</style>
